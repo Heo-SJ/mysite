@@ -13,7 +13,7 @@ app = Flask(__name__)
 # 유저가 어떤 종목, 투자 기간, 투자 전략 방식을 입력할 수 있는
 # 페이지를 보여주는 api 생성
 @app.route('/invest')
-def invest() :
+def first() :
     return render_template('invest.html')
 
 
