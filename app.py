@@ -3,7 +3,7 @@
 # git push
 
 # 프레임워크 로드
-from flask import Flask, request, render_template, url_for
+from flask import Flask, request, render_template, url_for, redirect, session
 import pandas as pd
 import invest
 from database import MyDB
@@ -16,6 +16,9 @@ load_dotenv()
 
 # Flask Class 생성
 app = Flask(__name__)
+
+# session에 비밀키 지정
+app.secret_key = os.getenv('secret')
 
 # database Class 생성
 mydb = MyDB(
@@ -40,14 +43,32 @@ def signup() :
     return render_template('signup.html')
 
 # 로그인 api
+@app.route('/signin', methods = ['post'])
+def signin() :
+    input_id = request.form['id']
+    input_pass = request.form['password']
+    
+    login_result = mydb.execute_query(
+        querys.login_query,
+        input_id,
+        input_pass
+    )
+    # login_result의 길이가 1이면 로그인 성공
+    if len(login_result) == 1 :
+        # 로그인 성공 시 세션에 데이터 저장
+        session['user_info'] = [input_id, input_pass]
+        return redirect('/invest')
+    
+    else :
+        return redirect('/')
 
 # 회원 가입 api
-app.route('signup2', methods = ['post'])
+@app.route('/signup2', methods = ['post'])
 def signup2() :
     # id, password, name 데이터를 받아온다
-    input_id = request.form('id')
-    input_pass = request.form('password')
-    input_name = request.form('name')
+    input_id = request.form['id']
+    input_pass = request.form['password']
+    input_name = request.form['name']
 
     # 사용 가능한 아이디인가 확인
     check_result = mydb.execute_query(querys.check_query, input_id)
@@ -60,13 +81,18 @@ def signup2() :
         return redirect('/')
     
     else :
-        return redirect('signup')
+        return redirect('/signup')
 
 # 유저가 어떤 종목, 투자 기간, 투자 전략 방식을 입력할 수 있는
 # 페이지를 보여주는 api 생성
 @app.route('/invest')
 def first() :
-    return render_template('invest.html')
+    # session에 데이터가 존재하는가?
+    if 'user_info' in session :
+        return render_template('invest.html')
+    
+    else :
+        return redirect('/')
 
 # 대쉬보드 페이지를 보여주는 api 생성
 # 대쉬보드에서 필요한 데이터는 
@@ -77,6 +103,8 @@ def first() :
 
 @app.route('/dashboard')
 def dashboard() :
+    if 'user_info' not in session :
+        return redirect('/')
     # 유저가 보낸 데이터를 변수에 저장
     # get 방식으로 보내온 데이터는 request.args 에 존재
     # 종목코드
