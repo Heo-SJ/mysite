@@ -54,14 +54,23 @@ def dashboard() :
     elif input_type == 'mmt' :
         result = invest_class.momentum()
 
-    # 인덱스를 초기화
-    result.reset_index(inplace = True)
-
     # 특정 컬럼만 필터
-    result = result[ ['Date', 'Close', 'trade', 'rtn', 'acc_rtn'] ]
+    result = result[ ['Close', 'trade', 'rtn', 'acc_rtn'] ]
+
+    # 특정 컬럼 생성
+    result['ym'] = result.index.strftime('%Y-%m')
+
+    # 테이블 정제
+    result = pd.concat(
+        [
+            result.groupby('ym')[ ['Close', 'trade', 'acc_rtn'] ].max(),
+            result.groupby('ym')[ ['rtn'] ].mean()
+        ], axis = 1
+    )
+    result.reset_index(inplace=True)
 
     # 컬럼의 이름 변경
-    result.columns = ['시간', '종가', '보유내역', '일별 수익률', '누적 수익률']
+    result.columns = ['시간', '종가', '보유내역', '누적 수익률', '일별 수익률']
 
     # 컬럼들의 이름을 리스트로 생성
     cols_list = list(result.columns)
